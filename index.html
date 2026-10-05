@@ -4,10 +4,66 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CHANPAN</title>
-  <script type="module" crossorigin src="./assets/index-DKZnuuTk.js"></script>
+  
   <link rel="stylesheet" crossorigin href="./assets/index-BKWS2j4x.css">
+<meta name="robots" content="noindex, nofollow">
+<style>
+#lock{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:16px;color:#1d4a6b;font:13px/1.5 Helvetica,Arial,sans-serif;
+  background:#99E2F2 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M30 18l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' fill='%23FEFA86'/%3E%3Cpath d='M90 70c-3-5-11-1-4 6l4 4 4-4c7-7-1-11-4-6z' fill='%23FFD5ED'/%3E%3Cpath d='M95 15q0 5 5 5q-5 0-5 5q0-5-5-5q5 0 5-5z' fill='%23FFFCF2'/%3E%3Cpath d='M25 85q0 5 5 5q-5 0-5 5q0-5-5-5q5 0 5-5z' fill='%23FFFCF2'/%3E%3C/svg%3E") repeat}
+#lock .lk-box{width:100%;max-width:360px;background:rgba(255,252,242,.94);border:2px solid #32A5E3;border-radius:10px;overflow:hidden}
+#lock h1{margin:0;padding:6px 10px;background:#32A5E3;color:#FFFCF2;font:500 13px Unbounded,Helvetica,sans-serif}
+#lock .lk-in{padding:16px;text-align:center}
+#lock .lk-logo{font:800 34px Unbounded,Helvetica,sans-serif;margin:0 0 4px;background:linear-gradient(110deg,#32A5E3 20%,#FFB9E9 40%,#1f78b4 50%,#FFAB00 60%,#32A5E3 80%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:lkshine 3s linear infinite}
+@keyframes lkshine{to{background-position:-250% 0}}
+#lock p{margin:0 0 12px}
+#lock input{width:100%;font:14px Helvetica,Arial,sans-serif;color:#1d4a6b;padding:8px 10px;border:2px solid #32A5E3;border-radius:8px;background:#FFFCF2;text-align:center;cursor:text}
+#lock input:focus{outline:none;border-color:#FF6D00}
+#lock button{margin-top:10px;font:500 12px Unbounded,Helvetica,sans-serif;color:#FFFCF2;background:#32A5E3;border:0;border-radius:14px;padding:8px 18px;text-decoration:underline}
+#lock button:hover{background:#FF6D00}
+#lock button:disabled{opacity:.6}
+#lock .lk-err{color:#c2187a;font-weight:bold;margin:10px 0 0;min-height:1em}
+</style>
 </head>
 <body>
+<div id="lock"><div class="lk-box"><h1>★ members only ★</h1><div class="lk-in">
+  <div class="lk-logo">CHANPAN</div>
+  <p>enter the password from ur order confirmation &lt;3</p>
+  <form id="lk-form"><input id="lk-pw" type="password" autocomplete="off" placeholder="password" required autofocus>
+  <button type="submit">Enter</button></form>
+  <p class="lk-err" id="lk-err"></p>
+</div></div></div>
+<script>(() => {
+  const ITER = 250000, SALT = "chanpan-lock-salt-v1", KEEP = 'chanpan-unlock-v1', DAYS = 30;
+  const lock = document.getElementById('lock'), form = document.getElementById('lk-form'),
+        pw = document.getElementById('lk-pw'), err = document.getElementById('lk-err'), btn = form.querySelector('button');
+  const payload = fetch('site.enc', { cache: 'no-store' }).then(r => r.json());
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const toB64 = u => btoa(String.fromCharCode(...u));
+  async function derive(p) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(p.trim().toLowerCase()), 'PBKDF2', false, ['deriveBits']);
+    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(SALT), iterations: ITER, hash: 'SHA-256' }, base, 256));
+  }
+  async function openWith(raw) {
+    const p = await payload;
+    const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    const code = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p.iv) }, key, b64(p.data)));
+    const s = document.createElement('script'); s.type = 'module'; s.textContent = code;
+    document.body.appendChild(s); lock.remove();
+  }
+  try {
+    const kept = JSON.parse(localStorage.getItem(KEEP) || 'null');
+    if (kept && kept.until > Date.now()) { lock.style.visibility = 'hidden'; openWith(b64(kept.k)).catch(() => { localStorage.removeItem(KEEP); lock.style.visibility = ''; }); }
+  } catch {}
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; btn.disabled = true; btn.textContent = '...';
+    try {
+      const raw = await derive(pw.value);
+      await openWith(raw);
+      try { localStorage.setItem(KEEP, JSON.stringify({ k: toB64(raw), until: Date.now() + DAYS * 864e5 })); } catch {}
+    } catch { err.textContent = 'wrong password, try again xoxo'; pw.select(); }
+    btn.disabled = false; btn.textContent = 'Enter';
+  });
+})();</script>
   <div id="app"></div>
 </body>
 </html>
